@@ -38,5 +38,12 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add TWD_USD_rate.json
+
+        # 只在檔案有變更時才提交
+        if git diff --cached --quiet; then
+          echo "⛔ 無檔案變動，略過 commit"
+          exit 0
+        fi
+
         git commit -m "🤖 自動更新 TWD/USD 匯率 JSON"
         git push
