@@ -1,0 +1,44 @@
+name: Daily TWD Rate Crawler
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 台灣時間上午10點（UTC+8），因 GitHub 用 UTC，2=10-8
+  workflow_dispatch:     # 可手動觸發
+  push:
+    paths:
+      - TWDAPI.py
+
+jobs:
+  run-crawler:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: pip install selenium beautifulsoup4 lxml
+
+      - name: Download ChromeDriver
+        run: |
+          sudo apt update
+          sudo apt install -y wget unzip xvfb chromium-driver chromium-browser
+          export DISPLAY=:99
+          Xvfb :99 &
+
+      - name: Run the crawler
+        run: |
+          python TWDAPI.py
+
+      - name: Commit and push updated JSON
+        run: |
+          git config --global user.email "you@example.com"
+          git config --global user.name "GitHub Action"
+          git add TWD_USD_rate.json
+          git commit -m "每日自動更新：最新匯率 JSON" || echo "No changes to commit"
+          git push
