@@ -1,44 +1,42 @@
-name: Daily TWD Rate Crawler
+name: Auto Update TWD/USD Rate
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # 台灣時間上午10點（UTC+8），因 GitHub 用 UTC，2=10-8
-  workflow_dispatch:     # 可手動觸發
-  push:
-    paths:
-      - TWDAPI.py
+    - cron: '0 9 * * *'  # 台灣時間每天 17:00
+  workflow_dispatch:
 
 jobs:
-  run-crawler:
+  update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
+    - name: Install Chrome
+      run: |
+        sudo apt update
+        sudo apt install -y wget unzip
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo apt install -y ./google-chrome-stable_current_amd64.deb
 
-      - name: Install dependencies
-        run: pip install selenium beautifulsoup4 lxml
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
 
-      - name: Download ChromeDriver
-        run: |
-          sudo apt update
-          sudo apt install -y wget unzip xvfb chromium-driver chromium-browser
-          export DISPLAY=:99
-          Xvfb :99 &
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install selenium beautifulsoup4 lxml
 
-      - name: Run the crawler
-        run: |
-          python TWDAPI.py
+    - name: Run crawler script
+      run: python TWDAPI.py
 
-      - name: Commit and push updated JSON
-        run: |
-          git config --global user.email "you@example.com"
-          git config --global user.name "GitHub Action"
-          git add TWD_USD_rate.json
-          git commit -m "每日自動更新：最新匯率 JSON" || echo "No changes to commit"
-          git push
+    - name: Commit and push updated JSON
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add TWD_USD_rate.json
+        git commit -m "🤖 自動更新 TWD/USD 匯率 JSON"
+        git push
