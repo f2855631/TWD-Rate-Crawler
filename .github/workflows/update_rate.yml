@@ -1,3 +1,40 @@
+name: Auto Update TWD/USD Rate
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 台灣時間 17:00
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}  # 這一行可選，加強安全
+
+    - name: Install Chrome
+      run: |
+        sudo apt update
+        sudo apt install -y wget unzip
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo apt install -y ./google-chrome-stable_current_amd64.deb
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install selenium beautifulsoup4 lxml
+
+    - name: Run crawler script
+      run: python TWDAPI.py
+
     - name: Commit and push updated JSON
       env:
         TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -6,13 +43,11 @@
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add TWD_USD_rate.json
 
-        # 只在檔案有變更時才提交
+        # 檢查是否有變更
         if git diff --cached --quiet; then
           echo "⛔ 無檔案變動，略過 commit"
           exit 0
         fi
 
         git commit -m "🤖 自動更新 TWD/USD 匯率 JSON"
-
-        # 用 GITHUB_TOKEN 做認證
         git push https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git HEAD:main
